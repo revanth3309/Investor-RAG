@@ -11,14 +11,14 @@ load_dotenv()
 
 
 class FinancialMetrics(BaseModel):
-    revenue: str | int | None = Field(None, alias="Revenue")
-    net_income: str | int | None = Field(None, alias="Net Income")
-    operating_income: str | int | None = Field(None, alias="Operating Income")
-    cash_flow: str | int | None = Field(None, alias="Cash Flow from Operating Activities")
-    total_assets: str | int | None = Field(None, alias="Total Assets")
-    total_liabilities: str | int | None = Field(None, alias="Total Liabilities")
-    risk_factors: str | list | None = Field(None, alias="Top Risk Factors")
-    growth_drivers: str | list | None = Field(None, alias="Top Growth Drivers")
+    revenue: str | int | None = None
+    net_income: str | int | None = None
+    operating_income: str | int | None = None
+    cash_flow_from_operating_activities: str | int | None = None
+    total_assets: str | int | None = None
+    total_liabilities: str | int | None = None
+    top_risk_factors: list[str] | None = None
+    top_growth_drivers: list[str] | None = None
 
 
 class Retriever:
@@ -196,13 +196,13 @@ def main() -> None:
         print("-" * 80)
 
 
-    """from database.save_metrics import save_metrics
+    from database.save_metrics import save_metrics
 
     save_metrics(
         company=company,
         year=year,
         metrics=results
-    )"""
+    )
 
 if __name__ == "__main__":
     main()
