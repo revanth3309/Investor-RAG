@@ -81,3 +81,37 @@ def create_database() -> None:
     except Exception as exc:
         print(f"Failed to create database: {exc}")
         raise
+
+
+def report_exists(company: str, year: int) -> bool:
+    """
+    Check whether a financial report already exists in PostgreSQL.
+
+    Args:
+        company: Company name.
+        year: Fiscal year.
+
+    Returns:
+        True if the report already exists, otherwise False.
+    """
+    engine = get_engine()
+
+    query = """
+    SELECT EXISTS (
+        SELECT 1
+        FROM financial_metrics
+        WHERE company = :company
+          AND year = :year
+    )
+    """
+
+    with engine.connect() as connection:
+        result = connection.execute(
+            text(query),
+            {
+                "company": company,
+                "year": str(year)
+            }
+        )
+
+        return result.scalar()

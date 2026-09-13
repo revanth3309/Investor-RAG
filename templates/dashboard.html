@@ -587,15 +587,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     }, 1200);
                 }, 4000);
             } else {
-                progressBarFill.style.width = '0%';
-                progressContainer.style.display = 'none';
-                try {
-                    const res = JSON.parse(xhr.responseText);
-                    showToast('Ingestion Failed', res.message || 'Error processing report.', 'error');
-                } catch(e) {
-                    showToast('Ingestion Failed', 'Internal server error occurred.', 'error');
-                }
-            }
+    progressBarFill.style.width = '0%';
+    progressContainer.style.display = 'none';
+
+    try {
+        const res = JSON.parse(xhr.responseText);
+
+        const errorMessage =
+            res.detail ||
+            res.message ||
+            'Error processing report.';
+
+        showToast(
+            'Ingestion Failed',
+            errorMessage,
+            'error'
+        );
+
+    } catch(e) {
+        showToast(
+            'Ingestion Failed',
+            'Internal server error occurred.',
+            'error'
+        );
+    }
+}
         };
 
         xhr.onerror = () => {
