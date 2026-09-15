@@ -6,7 +6,10 @@ import os
 from langchain_openai import AzureOpenAIEmbeddings
 from vectorstore.azure_ai_search import AzureAISearchVectorStore
 from ingestion.ingest_documents import ingest_document
-from database.postgres_sql import report_exists
+from database.postgres_sql import (
+    report_exists,
+    delete_metrics
+)
 
 router = APIRouter()
 
@@ -136,3 +139,85 @@ async def upload_document(
         "company": company,
         "year": year
     }
+
+@router.delete("/documents")
+async def delete_document(
+    company: str,
+    year: int
+):
+    """
+    Delete a financial report from:
+
+    1. Azure AI Search
+    2. PostgreSQL
+    3. Local PDF/Markdown files
+    """
+
+    company = company.strip()
+
+    if not company:
+        raise HTTPException(
+            status_code=400,
+            detail="Company name cannot be empty."
+        )
+
+    try:
+        # Initialize Azure AI Search vector store
+        vector_store = AzureAISearchVectorStore(
+            endpoint=os.getenv("AZURE_SEARCH_ENDPOINT"),
+            api_key=os.getenv("AZURE_SEARCH_API_KEY"),
+            index_name=os.getenv("AZURE_SEARCH_INDEX_NAME")
+        )
+
+        # 1. Delete chunks + embeddings from Azure AI Search
+        deleted_chunks = vector_store.delete_by_document(
+            company=company,
+            year=str(year)
+        )
+
+        # 2. Delete KPI records from PostgreSQL
+        deleted_metrics = delete_metrics(
+            company=company,
+            year=year
+        )
+
+        # Expected PDF filename
+        source_file = f"{year}_{company}.pdf"
+
+        # 3. Delete PDF from local storage
+        pdf_path = Path("data/raw_pdfs") / source_file
+
+        pdf_deleted = False
+
+        if pdf_path.exists():
+            pdf_path.unlink()
+            pdf_deleted = True
+
+        # 4. Delete generated Markdown
+        markdown_path = (
+            Path("data/markdown")
+            / f"{Path(source_file).stem}.md"
+        )
+
+        markdown_deleted = False
+
+        if markdown_path.exists():
+            markdown_path.unlink()
+            markdown_deleted = True
+
+        return {
+            "message": "Document deleted successfully",
+            "company": company,
+            "year": year,
+            "source_file": source_file,
+            "deleted_vector_chunks": deleted_chunks,
+            "deleted_metrics": deleted_metrics,
+            "deleted_pdf": pdf_deleted,
+            "deleted_markdown": markdown_deleted
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete document: {str(e)}"
+        )

@@ -53,6 +53,57 @@ class AzureAISearchVectorStore:
 
         print(f"Uploaded {uploaded}/{len(documents)} chunks.")
 
+    def delete_by_document(
+        self,
+        company: str,
+        year: str
+    ) -> int:
+        """
+        Delete all Azure AI Search chunks belonging to a document.
+
+        A document is identified by company + year.
+        Returns the number of chunks deleted.
+        """
+
+        filter_expr = (
+            f"company eq '{company}' "
+            f"and year eq '{year}'"
+        )
+
+        results = self.client.search(
+            search_text="*",
+            filter=filter_expr,
+            select=["id"]
+        )
+
+        document_ids = [
+            {"id": result["id"]}
+            for result in results
+        ]
+
+        if not document_ids:
+            print(
+                f"No Azure Search documents found for "
+                f"{company} {year}."
+            )
+            return 0
+
+        result = self.client.delete_documents(
+            documents=document_ids
+        )
+
+        deleted = sum(
+            item.succeeded
+            for item in result
+        )
+
+        print(
+            f"Deleted {deleted}/{len(document_ids)} "
+            f"Azure Search chunks for {company} {year}."
+        )
+
+        return deleted
+
 class Retriever:
     """Simple wrapper around Azure Search client for retrieving relevant chunks.
     Mirrors the Retriever used in the RAG extractor.

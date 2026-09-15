@@ -115,3 +115,37 @@ def report_exists(company: str, year: int) -> bool:
         )
 
         return result.scalar()
+
+def delete_metrics(company: str, year: int) -> int:
+    """
+    Delete all financial metrics for a company and year.
+
+    Returns:
+        Number of deleted rows.
+    """
+
+    engine = get_engine()
+
+    query = """
+        DELETE FROM financial_metrics
+        WHERE company = :company
+          AND year = :year
+    """
+
+    with engine.begin() as connection:
+        result = connection.execute(
+            text(query),
+            {
+                "company": company,
+                "year": str(year)
+            }
+        )
+
+    deleted = result.rowcount
+
+    print(
+        f"Deleted {deleted} PostgreSQL metric row(s) "
+        f"for {company} {year}."
+    )
+
+    return deleted
