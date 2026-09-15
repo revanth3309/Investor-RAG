@@ -488,6 +488,291 @@ body {
     fill: none;
 }
 
+
+/* ================================================
+   INGESTED REPORTS MANAGEMENT
+   ================================================ */
+
+.reports-section {
+    width: 100%;
+    margin-bottom: 32px;
+}
+
+.reports-card {
+    width: 100%;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.report-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+    padding: 18px 22px;
+
+    border-bottom: 1px solid var(--border-color);
+
+    transition:
+        background-color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.report-row:last-child {
+    border-bottom: none;
+}
+
+.report-row:hover {
+    background-color: rgba(255, 255, 255, 0.025);
+}
+
+
+/* --------------------------------
+   Report information
+   -------------------------------- */
+
+.report-info {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    min-width: 0;
+    flex: 1;
+}
+
+
+/* PDF icon container */
+
+.report-icon {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background-color: var(--accent-blue-bg);
+    color: var(--accent-blue);
+}
+
+
+/* IMPORTANT:
+   Without these dimensions the SVG
+   uses the browser's default 300x150 size.
+*/
+
+.report-icon svg {
+    width: 20px;
+    height: 20px;
+
+    display: block;
+
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+
+/* --------------------------------
+   Report text
+   -------------------------------- */
+
+.report-details {
+    min-width: 0;
+}
+
+.report-company {
+    font-size: 14px;
+    font-weight: 700;
+
+    color: var(--text-primary);
+
+    margin-bottom: 4px;
+}
+
+.report-meta {
+    font-size: 11px;
+
+    color: var(--text-muted);
+}
+
+
+/* --------------------------------
+   Right side actions
+   -------------------------------- */
+
+.report-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    flex-shrink: 0;
+}
+
+
+/* Year badge */
+
+.report-year-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 5px 9px;
+
+    border-radius: 6px;
+
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+
+    color: var(--text-secondary);
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* --------------------------------
+   Delete button
+   -------------------------------- */
+
+.delete-report-btn {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 8px 12px;
+
+    border: 1px solid rgba(244, 63, 94, 0.20);
+    border-radius: 8px;
+
+    background-color: var(--accent-red-bg);
+    color: var(--accent-red);
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+/* Trash icon */
+
+.delete-report-btn svg {
+    width: 14px;
+    height: 14px;
+
+    display: block;
+
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+
+/* Hover */
+
+.delete-report-btn:hover {
+    background-color: rgba(244, 63, 94, 0.16);
+    border-color: rgba(244, 63, 94, 0.35);
+
+    transform: translateY(-1px);
+}
+
+
+/* Click */
+
+.delete-report-btn:active {
+    transform: translateY(0);
+}
+
+
+/* Disabled while deleting */
+
+.delete-report-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+
+/* --------------------------------
+   Deleting state
+   -------------------------------- */
+
+.report-row.deleting {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+
+/* --------------------------------
+   Empty state
+   -------------------------------- */
+
+.reports-empty {
+    padding: 40px 20px;
+
+    text-align: center;
+
+    color: var(--text-muted);
+
+    font-size: 13px;
+}
+
+
+/* --------------------------------
+   Mobile
+   -------------------------------- */
+
+@media (max-width: 600px) {
+
+    .report-row {
+        flex-direction: column;
+        align-items: flex-start;
+
+        gap: 14px;
+    }
+
+    .report-actions {
+        width: 100%;
+
+        justify-content: space-between;
+    }
+
+    .delete-report-btn {
+        flex: 1;
+
+        max-width: 120px;
+    }
+}
+
+
 /* Company Deep Dive Inspector */
 .deep-dive-card {
     background-color: var(--bg-secondary);

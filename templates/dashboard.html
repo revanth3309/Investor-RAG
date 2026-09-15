@@ -269,6 +269,64 @@
             </div>
         </section>
 
+<!-- Ingested Reports Management -->
+<section class="reports-section">
+
+    <div class="section-header">
+        <div class="section-title">
+            <span>Ingested Reports</span>
+        </div>
+    </div>
+
+    <div class="reports-card">
+
+        {% for row in metrics %}
+
+        <div
+            class="report-row"
+            id="report-{{ row.company | replace(' ', '-') }}-{{ row.year }}"
+        >
+
+            <div class="report-info">
+
+                <div class="report-details">
+
+                    <div class="report-company">
+                        {{ row.company }}
+                    </div>
+
+                    <div class="report-meta">
+                        Financial Report <span>·</span> FY {{ row.year }}
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="report-actions">
+
+                <span class="report-year-badge">
+                    {{ row.year }}
+                </span>
+
+                <button
+                    class="delete-report-btn"
+                    onclick='deleteDocument({{ row.company | tojson }}, {{ row.year | tojson }}, this)'
+                    title="Delete this report"
+                >
+                    Delete
+                </button>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
         <!-- Company Intelligence Inspector -->
         <section class="deep-dive-section">
             <div class="section-header">
@@ -636,6 +694,101 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+
+// ----------------------------------------------------
+// Delete Ingested Report
+// ----------------------------------------------------
+async function deleteDocument(company, year, button) {
+
+    const confirmed = confirm(
+        `Are you sure you want to delete ${company}'s ${year} report?\n\n` +
+        `This will permanently remove:\n` +
+        `• Document embeddings from Azure AI Search\n` +
+        `• Financial metrics from PostgreSQL\n` +
+        `• Original PDF\n` +
+        `• Generated Markdown file`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    // Prevent duplicate clicks
+    button.disabled = true;
+
+    const originalContent = button.innerHTML;
+
+    button.innerHTML = `
+        <svg viewBox="0 0 24 24">
+            <path d="M12 2v4"/>
+            <path d="M12 18v4"/>
+            <path d="M4.93 4.93l2.83 2.83"/>
+            <path d="M16.24 16.24l2.83 2.83"/>
+            <path d="M2 12h4"/>
+            <path d="M18 12h4"/>
+        </svg>
+        <span>Deleting...</span>
+    `;
+
+    const row = button.closest('.report-row');
+
+    if (row) {
+        row.classList.add('deleting');
+    }
+
+    try {
+
+        const url =
+            `/api/documents?company=${encodeURIComponent(company)}` +
+            `&year=${encodeURIComponent(year)}`;
+
+        const response = await fetch(url, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.detail ||
+                data.message ||
+                `Delete failed (${response.status})`
+            );
+        }
+
+        showToast(
+            'Report Deleted',
+            `${company} ${year} was successfully removed.`,
+            'success'
+        );
+
+        // Refresh dashboard so:
+        // - KPI cards disappear
+        // - company selector updates
+        // - chat company selector updates
+        // - statistics update
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+
+    } catch (error) {
+
+        // Restore button if deletion failed
+        button.disabled = false;
+        button.innerHTML = originalContent;
+
+        if (row) {
+            row.classList.remove('deleting');
+        }
+
+        showToast(
+            'Deletion Failed',
+            error.message || 'Unable to delete the report.',
+            'error'
+        );
+    }
+}
 
 // Switch company in inspector view
 function switchCompany(companyName) {
