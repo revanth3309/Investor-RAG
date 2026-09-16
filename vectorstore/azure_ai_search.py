@@ -53,6 +53,15 @@ class AzureAISearchVectorStore:
 
         print(f"Uploaded {uploaded}/{len(documents)} chunks.")
 
+        for item in result:
+           if not item.succeeded:
+             print(
+            f"[AZURE SEARCH ERROR] "
+            f"Document key={item.key}, "
+            f"status={item.status_code}, "
+            f"error={item.error_message}"
+        )
+
     def delete_by_document(
         self,
         company: str,
@@ -105,9 +114,10 @@ class AzureAISearchVectorStore:
         return deleted
 
 class Retriever:
-    """Simple wrapper around Azure Search client for retrieving relevant chunks.
-    Mirrors the Retriever used in the RAG extractor.
     """
+    Wrapper around Azure AI Search for retrieving document chunks.
+    """
+
     def __init__(self, client):
         self.client = client
 
@@ -116,31 +126,45 @@ class Retriever:
         query: str,
         company: str | None = None,
         year: int | None = None,
-        top_k: int = 20
+        top_k: int = 100
     ) -> list:
-        """Retrieve relevant chunks from Azure AI Search.
-        Returns a list of SimpleNamespace objects with `page_content`.
         """
+        Retrieve chunks from Azure AI Search.
+
+        When company and year are provided, retrieve chunks
+        belonging to that specific report.
+        """
+
         filter_expr = None
+
         if company and year:
             filter_expr = (
                 f"company eq '{company}' "
                 f"and year eq '{year}'"
             )
-        results = (
-            self.client.search(
-                search_text=query,
-                top=top_k,
-                filter=filter_expr
-            )
-            if filter_expr
-            else self.client.search(
-                search_text=query,
-                top=top_k
-            )
+
+        results = self.client.search(
+            search_text="*",
+            top=top_k,
+            filter=filter_expr
         )
+
         documents = []
+
         for result in results:
             content = result.get("content", "")
-            documents.append(SimpleNamespace(page_content=content))
+
+            if content and content.strip():
+                documents.append(
+                    SimpleNamespace(
+                        page_content=content
+                    )
+                )
+
+        print(
+            f"[RETRIEVER DEBUG] Retrieved "
+            f"{len(documents)} chunks for "
+            f"{company} {year}"
+        )
+
         return documents
