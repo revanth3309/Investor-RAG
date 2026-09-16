@@ -25,49 +25,52 @@ class Retriever:
     def __init__(self, client):
         self.client = client
 
-    def invoke(
-        self,
-        query: str,
-        company: str | None = None,
-        year: int | None = None,
-        top_k: int = 20
-    ) -> list:
-        """
-        Retrieve relevant chunks from Azure AI Search.
-        """
-        filter_expr = None
+def invoke(
+    self,
+    query: str,
+    company: str | None = None,
+    year: int | None = None,
+    top_k: int = 100
+) -> list:
+    """
+    Retrieve chunks from Azure AI Search.
 
-        if company and year:
-            filter_expr = (
-                f"company eq '{company}' "
-                f"and year eq '{year}'"
-            )
+    For KPI extraction, we retrieve all available chunks
+    belonging to the requested company and year.
+    """
 
-        results = (
-            self.client.search(
-                search_text=query,
-                top=top_k,
-                filter=filter_expr
-            )
-            if filter_expr
-            else self.client.search(
-                search_text=query,
-                top=top_k
-            )
+    filter_expr = None
+
+    if company and year:
+        filter_expr = (
+            f"company eq '{company}' "
+            f"and year eq '{year}'"
         )
 
-        documents = []
+    results = self.client.search(
+        search_text="*",
+        top=top_k,
+        filter=filter_expr
+    )
 
-        for result in results:
-            content = result.get("content", "")
+    documents = []
+
+    for result in results:
+        content = result.get("content", "")
+
+        if content.strip():
             documents.append(
                 SimpleNamespace(
                     page_content=content
                 )
             )
-        #print(documents)
-        return documents
 
+    print(
+         f"[KPI DEBUG] Retrieved {len(documents)} "
+         f"chunks for {company} {year}"
+    )
+
+    return documents
 
 def retrieve_context(
     retriever: Retriever,
@@ -75,30 +78,26 @@ def retrieve_context(
     year: int
 ) -> str:
     """
-    Retrieve broad financial context from the vector store.
-    """
-    query = f"""
-    Annual report financial statements,
-    income statement,
-    balance sheet,
-    cash flow statement,
-    risks,
-    growth drivers,
-    financial performance
-    for {company} fiscal year {year}
+    Retrieve all available financial context for a company/year.
     """
 
     documents = retriever.invoke(
-        query=query,
+        query="*",
         company=company,
         year=year,
-        top_k=20
+        top_k=100
     )
-    # print(documents)
-    return "\n\n".join(
+
+    context = "\n\n".join(
         doc.page_content
         for doc in documents
     )
+
+    print(
+        f"[KPI DEBUG] Context length: {len(context)} characters"
+    )
+
+    return context
 
 
 def build_extraction_prompt(
@@ -109,16 +108,24 @@ def build_extraction_prompt(
     """
     Build KPI extraction prompt.
     """
+
     return f"""
-You are an expert financial analyst.
+You are an expert financial analyst extracting data from
+an annual financial report.
 
 Company: {company}
-Year: {year}
+Fiscal Year: {year}
 
-Context:
+You must extract the requested information ONLY from the
+provided report context.
+
+================ REPORT CONTEXT ================
+
 {context}
 
-Extract the following information:
+================ END REPORT CONTEXT ================
+
+Extract:
 
 1. Revenue
 2. Net Income
@@ -129,14 +136,30 @@ Extract the following information:
 7. Top Risk Factors
 8. Top Growth Drivers
 
-Instructions:
+IMPORTANT INSTRUCTIONS:
 
-- Use only the provided context.
-- Return null if unavailable.
-- Financial values must match the report exactly.
-- Risk factors should be concise.
-- Growth drivers should be concise.
-- Return valid JSON only.
+- Search the ENTIRE provided context before deciding that a
+  value is unavailable.
+- Financial values must be copied exactly as reported.
+- Preserve currency symbols and units when they are present.
+- Do not calculate or estimate values.
+- Do not use outside knowledge.
+- Revenue should come from the company's income statement
+  or consolidated statements of operations.
+- Net Income should come from the income statement.
+- Operating Income should come from the income statement
+  when explicitly reported.
+- Cash Flow from Operating Activities should come from the
+  cash flow statement.
+- Total Assets and Total Liabilities should come from the
+  balance sheet.
+- Identify the most important risks explicitly discussed
+  in the report.
+- Identify the most important growth drivers explicitly
+  discussed in the report.
+- Return null only when the requested information genuinely
+  does not appear anywhere in the provided context.
+- Return valid structured JSON only.
 """
 
 
@@ -148,11 +171,29 @@ def extract_financial_metrics(
     """
     Extract KPIs using RAG.
     """
+
     context = retrieve_context(
         retriever=retriever,
         company=company,
         year=year
     )
+
+    if not context.strip():
+        raise ValueError(
+            f"No context retrieved for {company} {year}. "
+            "KPI extraction cannot continue."
+        )
+
+    print(
+        f"[KPI DEBUG] Sending {len(context)} "
+        f"characters of context to the LLM."
+    )
+
+    print("\n" + "=" * 80)
+    print("[KPI DEBUG] CONTEXT SENT TO LLM")
+    print("=" * 80)
+    print(context[:10000])
+    print("=" * 80)
 
     prompt = build_extraction_prompt(
         company=company,
@@ -164,6 +205,9 @@ def extract_financial_metrics(
         prompt=prompt,
         response_model=FinancialMetrics
     )
+
+    print("\n[debug] Structured parsed output:")
+    print(metrics)
 
     return metrics.model_dump()
 
